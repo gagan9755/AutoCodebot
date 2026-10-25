@@ -81,6 +81,7 @@ def clean_app_name(name):
 
 user_states = {}
 user_clients = {}
+user_data = {}  # Fixed: Added dictionary for OTP handling
 
 # --- 🔐 LICENSE LOGIC ---
 def generate_key(days):
@@ -168,9 +169,8 @@ async def start_scraper_client(user_id):
                 detected_app_id = a_id
                 break
                 
-        if not detected_app_id: return # Koi app match nahi hui
+        if not detected_app_id: return
 
-        # Extract Code
         code = None
         if "mail box" in text.lower() or "mailbox" in text.lower():
             code = "Check Mail Box 🎁"
@@ -178,9 +178,8 @@ async def start_scraper_client(user_id):
             match = re.search(r'(?i)code\s*[-:👉=>]+\s*([a-zA-Z0-9_]+)', text)
             if match: code = match.group(1)
             
-        if not code: return # Code nahi mila
+        if not code: return
 
-        # Daily Midnight Reset Logic
         today_str = datetime.now().strftime("%Y-%m-%d")
         if users_db[uid]["memory"]["date"] != today_str:
             users_db[uid]["memory"]["date"] = today_str
@@ -193,7 +192,6 @@ async def start_scraper_client(user_id):
             users_db[uid]["memory"]["codes"][detected_app_id].append(code)
             save_users()
 
-        # Build Format
         app_data = users_db[uid]["apps"][detected_app_id]
         codes_list = users_db[uid]["memory"]["codes"][detected_app_id]
         app_type = app_data["type"]
@@ -208,12 +206,11 @@ async def start_scraper_client(user_id):
             if "Mail Box" in c:
                 final_msg += f"{i+1}️⃣ {c}\n"
             else:
-                final_msg += f"{i+1}️⃣ `{c}`\n" # MonoSpace Format
+                final_msg += f"{i+1}️⃣ `{c}`\n"
         
         photo_path = users_db[uid]["photos"].get(app_type)
         if photo_path and not os.path.exists(photo_path): photo_path = None
 
-        # Send to Destinations
         for dest_id in users_db[uid]["destinations"]:
             try:
                 if photo_path:
@@ -257,7 +254,6 @@ async def callback_handler(event):
     try: await event.delete()
     except: pass
 
-    # Admin Panel
     if user_id == MASTER_ID:
         if data == "adm_gen_7":
             await event.respond(f"✅ 7 Days Key:\n`{generate_key(7)}`")
@@ -272,7 +268,6 @@ async def callback_handler(event):
             await event.respond(msg)
             return
 
-    # Main Menu
     if data == "main_menu":
         user_states[user_id] = None
         await event.respond("🏠 **Main Menu:**", buttons=get_main_menu(uid))
@@ -296,7 +291,6 @@ async def callback_handler(event):
         save_users()
         await event.respond("🔴 **Scraper Stopped!**", buttons=get_main_menu(uid))
 
-    # App Manager
     elif data == "menu_apps":
         await event.respond("📱 **App Manager:**", buttons=get_app_menu())
         
@@ -329,7 +323,6 @@ async def callback_handler(event):
                 msg += f"• **{v['name']}** ({v['type'].upper()})\n🔗 `{v['link']}`\n\n"
         await event.respond(msg, buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
 
-    # Photo Manager
     elif data == "menu_photos":
         st_y = "✅ Set" if users_db[uid]["photos"].get("yono") else "❌ Not Set"
         st_d = "✅ Set" if users_db[uid]["photos"].get("diwa") else "❌ Not Set"
@@ -357,7 +350,6 @@ async def callback_handler(event):
             save_users()
         await event.respond("🗑️ Diwa Photo Removed!", buttons=[[Button.inline("🔙 Back", b"menu_photos")]])
 
-    # SOURCE & DESTINATION MANAGER
     elif data == "menu_source":
         sources = users_db[uid].get("sources", {})
         msg = "📥 **Your Source Channels:**\n\n"
@@ -410,7 +402,6 @@ async def callback_handler(event):
         users_db[uid][target][str(c_id)] = c_name
         save_users()
         
-        # Reload Menu
         if is_src: await callback_handler(events.CallbackQuery.Event(data=b"menu_source", sender_id=user_id))
         else: await callback_handler(events.CallbackQuery.Event(data=b"menu_dest", sender_id=user_id))
 
@@ -423,7 +414,6 @@ async def callback_handler(event):
             del users_db[uid][target][str(c_id)]
             save_users()
         
-        # Reload Menu
         if is_src: await callback_handler(events.CallbackQuery.Event(data=b"menu_source", sender_id=user_id))
         else: await callback_handler(events.CallbackQuery.Event(data=b"menu_dest", sender_id=user_id))
 
@@ -435,7 +425,6 @@ async def callback_handler(event):
         msg = f"📊 **Your Stats:**\n\n⏳ Validity: `{val}`\n📱 Saved Apps: `{ac}`\n📥 Sources: `{sc}`\n📤 Destinations: `{dc}`"
         await event.respond(msg, buttons=[[Button.inline("🔙 Back", b"main_menu")]])
 
-
 @master_bot.on(events.NewMessage())
 async def handle_text_inputs(event):
     user_id = event.sender_id
@@ -446,7 +435,6 @@ async def handle_text_inputs(event):
     state = user_states.get(user_id)
     if not state: return
 
-    # Photo Upload Handlers
     if state in ['WAITING_PHOTO_YONO', 'WAITING_PHOTO_DIWA']:
         if not event.message.media or not hasattr(event.message.media, 'photo'):
             await event.reply("❌ Kripya ek valid Photo bhejein!")
@@ -461,14 +449,12 @@ async def handle_text_inputs(event):
         await event.reply(f"✅ {a_type.upper()} Photo Set Successfully!", buttons=[[Button.inline("🔙 Back", b"menu_photos")]])
         return
 
-    # Add App Name
     if isinstance(state, dict) and state.get('state') == 'WAITING_APP_NAME':
         clean_id = clean_app_name(text)
         user_states[user_id] = {'state': 'WAITING_APP_LINK', 'type': state['type'], 'id': clean_id, 'name': text}
         await event.reply("🔗 Ab is App ki **Affiliate Link** bhejein:")
         return
 
-    # Add App Link
     if isinstance(state, dict) and state.get('state') == 'WAITING_APP_LINK':
         a_id = state['id']
         users_db[uid]["apps"][a_id] = {"name": state['name'], "type": state['type'], "link": text}
@@ -477,7 +463,6 @@ async def handle_text_inputs(event):
         await event.reply(f"✅ App **{state['name']}** added successfully!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
 
-    # Edit App Name
     if state == 'WAITING_EDIT_NAME':
         clean_id = clean_app_name(text)
         if clean_id in users_db[uid]["apps"]:
@@ -488,7 +473,6 @@ async def handle_text_inputs(event):
             await event.reply("❌ Ye App saved list mein nahi hai.", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
         return
         
-    # Edit App Link
     if isinstance(state, dict) and state.get('state') == 'WAITING_EDIT_LINK':
         a_id = state['id']
         users_db[uid]["apps"][a_id]["link"] = text
@@ -497,7 +481,6 @@ async def handle_text_inputs(event):
         await event.reply("✅ Link Updated Successfully!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
 
-    # Delete App
     if state == 'WAITING_DEL_NAME':
         clean_id = clean_app_name(text)
         if clean_id in users_db[uid]["apps"]:
@@ -513,7 +496,6 @@ async def handle_text_inputs(event):
         user_states[user_id] = None
         return
 
-    # Key Logic
     if state == 'WAITING_KEY':
         if text in admin_db["keys"] and not admin_db["keys"][text]["used_by"]:
             exp = admin_db["keys"][text]["expires"]
@@ -524,7 +506,6 @@ async def handle_text_inputs(event):
             await event.reply("✅ Key Verified!", buttons=get_main_menu(uid))
         else: await event.reply("❌ Invalid ya Used Key!")
 
-    # Login Logic
     elif state == 'WAITING_PHONE':
         user_states[user_id] = {'state': 'WAITING_OTP', 'phone': text}
         await event.reply("🔄 OTP bhej rahe hain...")
@@ -565,7 +546,6 @@ async def handle_text_inputs(event):
         except Exception as e:
             await event.reply(f"❌ Password Error: {e}")
 
-# Startup
 async def auto_start():
     for uid, sess in sessions_db.items():
         if users_db.get(uid, {}).get("is_running") and check_sub(uid):
