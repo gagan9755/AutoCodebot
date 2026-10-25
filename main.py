@@ -110,7 +110,7 @@ def get_main_menu(uid):
     return [
         [Button.inline(status, cb_data)],
         [Button.inline("📱 App Manager", b"menu_apps"), Button.inline("🖼️ Photo Manager", b"menu_photos")],
-        [Button.inline("📥 Set Sources", b"menu_source"), Button.inline("📤 Set Destinations", b"menu_dest")],
+        [Button.inline("📥 Sources Manager", b"menu_source"), Button.inline("📤 Dest Manager", b"menu_dest")],
         [Button.inline("📊 My Stats / Validity", b"my_stats")]
     ]
 
@@ -135,9 +135,11 @@ async def get_dialogs_buttons(client, action_prefix):
         btns = []
         for d in dialogs:
             if d.is_channel or d.is_group:
-                name = d.name[:15] if d.name else "Chat"
+                name = d.name[:20] if d.name else "Chat"
                 btns.append([Button.inline(name, f"{action_prefix}_{d.id}".encode())])
-        btns.append([Button.inline("🔙 Back", b"main_menu")])
+        
+        back_route = b"menu_source" if action_prefix == "setsrc" else b"menu_dest"
+        btns.append([Button.inline("🔙 Back", back_route)])
         return btns
     except: return [[Button.inline("🔙 Back", b"main_menu")]]
 
@@ -173,7 +175,6 @@ async def start_scraper_client(user_id):
         if "mail box" in text.lower() or "mailbox" in text.lower():
             code = "Check Mail Box 🎁"
         else:
-            # Matches: Code: XYZ, Code 👉 XYZ, Code - XYZ, Code=XYZ
             match = re.search(r'(?i)code\s*[-:👉=>]+\s*([a-zA-Z0-9_]+)', text)
             if match: code = match.group(1)
             
@@ -356,26 +357,84 @@ async def callback_handler(event):
             save_users()
         await event.respond("🗑️ Diwa Photo Removed!", buttons=[[Button.inline("🔙 Back", b"menu_photos")]])
 
-    # Source & Dest Setters
-    elif data in ["menu_source", "menu_dest"]:
-        is_src = (data == "menu_source")
+    # SOURCE & DESTINATION MANAGER
+    elif data == "menu_source":
+        sources = users_db[uid].get("sources", {})
+        msg = "📥 **Your Source Channels:**\n\n"
+        btns = []
+        if not sources: msg += "⚠️ No sources added yet.\n"
+        else:
+            for sid, sname in sources.items():
+                msg += f"• `{sname}`\n"
+                btns.append([Button.inline(f"❌ Remove {sname}", f"remsrc_{sid}".encode())])
+        
+        btns.append([Button.inline("➕ Add New Source", b"add_src")])
+        btns.append([Button.inline("🔙 Back to Main", b"main_menu")])
+        await event.respond(msg, buttons=btns)
+
+    elif data == "menu_dest":
+        destinations = users_db[uid].get("destinations", {})
+        msg = "📤 **Your Destination Channels:**\n\n"
+        btns = []
+        if not destinations: msg += "⚠️ No destinations added yet.\n"
+        else:
+            for did, dname in destinations.items():
+                msg += f"• `{dname}`\n"
+                btns.append([Button.inline(f"❌ Remove {dname}", f"remdst_{did}".encode())])
+        
+        btns.append([Button.inline("➕ Add New Dest", b"add_dst")])
+        btns.append([Button.inline("🔙 Back to Main", b"main_menu")])
+        await event.respond(msg, buttons=btns)
+
+    elif data in ["add_src", "add_dst"]:
+        is_src = (data == "add_src")
         if uid not in sessions_db:
             await event.respond("⚠️ Pehle bot Start karein aur login karein!", buttons=[[Button.inline("🔙 Back", b"main_menu")]])
             return
         client = user_clients.get(uid)
         if client:
-            btns = await get_dialogs_buttons(client, "src" if is_src else "dst")
-            title = "📥 Select Source Channel:" if is_src else "📤 Select Destination Channel:"
+            btns = await get_dialogs_buttons(client, "setsrc" if is_src else "setdst")
+            title = "📥 Select Source to ADD:" if is_src else "📤 Select Destination to ADD:"
             await event.respond(title, buttons=btns)
 
-    elif data.startswith("src_") or data.startswith("dst_"):
-        is_src = data.startswith("src_")
+    elif data.startswith("setsrc_") or data.startswith("setdst_"):
+        is_src = data.startswith("setsrc_")
         c_id = data.split("_")[1]
         target = "sources" if is_src else "destinations"
-        users_db[uid][target][str(c_id)] = True
+        
+        try:
+            ent = await user_clients[uid].get_entity(int(c_id))
+            c_name = getattr(ent, 'title', 'Channel')[:15]
+        except: c_name = "Channel"
+
+        users_db[uid][target][str(c_id)] = c_name
         save_users()
-        typ = "Source" if is_src else "Destination"
-        await event.respond(f"✅ {typ} Added successfully!", buttons=[[Button.inline("🔙 Back", b"main_menu")]])
+        
+        # Reload Menu
+        if is_src: await callback_handler(events.CallbackQuery.Event(data=b"menu_source", sender_id=user_id))
+        else: await callback_handler(events.CallbackQuery.Event(data=b"menu_dest", sender_id=user_id))
+
+    elif data.startswith("remsrc_") or data.startswith("remdst_"):
+        is_src = data.startswith("remsrc_")
+        c_id = data.split("_")[1]
+        target = "sources" if is_src else "destinations"
+        
+        if str(c_id) in users_db[uid][target]:
+            del users_db[uid][target][str(c_id)]
+            save_users()
+        
+        # Reload Menu
+        if is_src: await callback_handler(events.CallbackQuery.Event(data=b"menu_source", sender_id=user_id))
+        else: await callback_handler(events.CallbackQuery.Event(data=b"menu_dest", sender_id=user_id))
+
+    elif data == "my_stats":
+        val = get_validity(user_id)
+        sc = len(users_db[uid]["sources"])
+        dc = len(users_db[uid]["destinations"])
+        ac = len(users_db[uid]["apps"])
+        msg = f"📊 **Your Stats:**\n\n⏳ Validity: `{val}`\n📱 Saved Apps: `{ac}`\n📥 Sources: `{sc}`\n📤 Destinations: `{dc}`"
+        await event.respond(msg, buttons=[[Button.inline("🔙 Back", b"main_menu")]])
+
 
 @master_bot.on(events.NewMessage())
 async def handle_text_inputs(event):
