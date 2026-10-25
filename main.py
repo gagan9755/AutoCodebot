@@ -24,7 +24,7 @@ Thread(target=run_server).start()
 # --- ⚙️ BOT CONFIGURATION ---
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
-BOT_TOKEN = '8546884710:AAEidgEI9Xdu8GpxbEKEXQE9tyo6mupJEuY' 
+BOT_TOKEN = '8848334437:AAE82vDGyudr7HkSwyT32jhNAYvmwQsCBaU' 
 MASTER_ID = 8845438009  # Your Admin ID
 
 master_bot = TelegramClient('affiliate_master', API_ID, API_HASH)
