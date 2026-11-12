@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from telethon import TelegramClient, events, Button
 from telethon.sessions import StringSession
 from telethon.errors import SessionPasswordNeededError
+from telethon.tl.types import MessageEntityCode, MessageEntityPre
 from flask import Flask
 from threading import Thread
 
@@ -81,7 +82,7 @@ def clean_app_name(name):
 
 user_states = {}
 user_clients = {}
-user_data = {}  # Fixed: Added dictionary for OTP handling
+user_data = {}  
 
 # --- 🔐 LICENSE LOGIC ---
 def generate_key(days):
@@ -105,7 +106,7 @@ def get_validity(user_id):
 # --- 🧠 UI MENUS ---
 def get_main_menu(uid):
     is_running = users_db[str(uid)].get("is_running", False)
-    status = "🟢 STOP SCRAPER" if is_running else "🚀 START SCRAPER"
+    status = "🔴 STOP SCRAPER" if is_running else "🟢 START SCRAPER"
     cb_data = b"stop_bot" if is_running else b"start_bot"
     
     return [
@@ -160,7 +161,7 @@ async def start_scraper_client(user_id):
         if not users_db[uid]["sources"] or not users_db[uid]["destinations"]: return
         if str(event.chat_id) not in users_db[uid]["sources"]: return
 
-        text = event.message.message or ""
+        text = event.raw_text or ""
         clean_msg = clean_app_name(text)
         
         detected_app_id = None
@@ -175,8 +176,17 @@ async def start_scraper_client(user_id):
         if "mail box" in text.lower() or "mailbox" in text.lower():
             code = "Check Mail Box 🎁"
         else:
-            match = re.search(r'(?i)code\s*[-:👉=>]+\s*([a-zA-Z0-9_]+)', text)
-            if match: code = match.group(1)
+            # 🛠️ NAYA FIX: Pehle check karega ki message mein koi 'Monospace/Click-to-copy' text hai kya
+            if event.message.entities:
+                for ent, ent_text in event.message.get_entities_text():
+                    if isinstance(ent, (MessageEntityCode, MessageEntityPre)):
+                        code = ent_text.strip()
+                        break
+            
+            # Agar koi mono word nahi mila, toh regex se check karega (Backup filter)
+            if not code:
+                match = re.search(r'(?i)code\s*[-:👉=>]*\s*([a-zA-Z0-9_]+)', text)
+                if match: code = match.group(1)
             
         if not code: return
 
@@ -188,9 +198,12 @@ async def start_scraper_client(user_id):
         if detected_app_id not in users_db[uid]["memory"]["codes"]:
             users_db[uid]["memory"]["codes"][detected_app_id] = []
             
-        if code not in users_db[uid]["memory"]["codes"][detected_app_id]:
-            users_db[uid]["memory"]["codes"][detected_app_id].append(code)
-            save_users()
+        # 🛠️ NAYA FIX: Spam aur double forward block karne ka logic
+        if code in users_db[uid]["memory"]["codes"][detected_app_id]:
+            return 
+            
+        users_db[uid]["memory"]["codes"][detected_app_id].append(code)
+        save_users()
 
         app_data = users_db[uid]["apps"][detected_app_id]
         codes_list = users_db[uid]["memory"]["codes"][detected_app_id]
@@ -206,6 +219,7 @@ async def start_scraper_client(user_id):
             if "Mail Box" in c:
                 final_msg += f"{i+1}️⃣ {c}\n"
             else:
+                # Yaha code ko wapas Monospace (`code`) bana kar bheja ja rha hai
                 final_msg += f"{i+1}️⃣ `{c}`\n"
         
         photo_path = users_db[uid]["photos"].get(app_type)
@@ -213,11 +227,13 @@ async def start_scraper_client(user_id):
 
         for dest_id in users_db[uid]["destinations"]:
             try:
+                # 🛠️ NAYA FIX: parse_mode='md' add kiya gya hai taaki 100% click-to-copy work kare
                 if photo_path:
-                    await client.send_message(int(dest_id), final_msg, file=photo_path, link_preview=False)
+                    await client.send_message(int(dest_id), final_msg, file=photo_path, link_preview=False, parse_mode='md')
                 else:
-                    await client.send_message(int(dest_id), final_msg, link_preview=False)
-            except Exception as e: print(f"Send Error: {e}")
+                    await client.send_message(int(dest_id), final_msg, link_preview=False, parse_mode='md')
+            except Exception as e: 
+                print(f"Send Error: {e}")
 
 # --- 🤖 BOT COMMANDS ---
 @master_bot.on(events.NewMessage(pattern='/start'))
@@ -283,7 +299,12 @@ async def callback_handler(event):
             
         users_db[uid]["is_running"] = True
         save_users()
-        if uid not in user_clients: asyncio.create_task(start_scraper_client(user_id))
+        
+        # 🛠️ NAYA FIX: Purane connection ko hatakar naya listener chalu karna
+        if uid in user_clients:
+            await user_clients[uid].disconnect()
+            
+        asyncio.create_task(start_scraper_client(user_id))
         await event.respond("🚀 **Scraper Started Successfully!**", buttons=get_main_menu(uid))
 
     elif data == "stop_bot":
