@@ -26,7 +26,7 @@ Thread(target=run_server).start()
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
 
-# ⚠️ APNA NAYA TOKEN YAHAN DALEIN (Purana expire ho chuka hai)
+# ✅ NAYA TOKEN ADD KAR DIYA GAYA HAI
 BOT_TOKEN = '8848334437:AAGXnhrwiArNN9T4oDFQJhL53giAL9MEMas' 
 
 MASTER_ID = 8845438009  # Your Admin ID
@@ -93,7 +93,7 @@ DEFAULT_APPS = {
     "cashrummy": {"name": "Cash rummy", "type": "yono"},
     "rummy888": {"name": "Rummy 888", "type": "yono"},
     "gogorummy": {"name": "Gogo rummy", "type": "yono"},
-    "123rummy": {"name": "123 Rummy", "type": "yono"},  # Naya app add kar diya gaya hai
+    "123rummy": {"name": "123 Rummy", "type": "yono"},  
 
     # 👑 DIWA TYPE APPS (20 Apps)
     "diwagame": {"name": "Diwa Game", "type": "diwa"},
@@ -195,7 +195,8 @@ def get_validity(user_id):
 # --- 🧠 UI MENUS ---
 def get_main_menu(uid):
     is_running = users_db[str(uid)].get("is_running", False)
-    status = "🔴 STOP SCRAPER" if is_running else "🟢 START SCRAPER"
+    # 🛠️ NAYA: PAUSE AUR RESUME BUTTON UI
+    status = "⏸️ PAUSE SCRAPER" if is_running else "▶️ RESUME (START) SCRAPER"
     cb_data = b"stop_bot" if is_running else b"start_bot"
     return [
         [Button.inline(status, cb_data)],
@@ -258,8 +259,6 @@ async def start_scraper_client(user_id):
         if not detected_app_id: return
         
         app_data = users_db[uid]["apps"][detected_app_id]
-        
-        # ⚠️ Agar App Pending hai (User ne link nahi daala), toh code skip kar do
         if not app_data.get("link"): return
 
         code = None
@@ -277,6 +276,7 @@ async def start_scraper_client(user_id):
             
         if not code: return
 
+        # 🧠 MEMORY SYSTEM: 1 Din ka data yaad rakhega
         today_str = datetime.now().strftime("%Y-%m-%d")
         if users_db[uid]["memory"]["date"] != today_str:
             users_db[uid]["memory"]["date"] = today_str
@@ -285,6 +285,7 @@ async def start_scraper_client(user_id):
         if detected_app_id not in users_db[uid]["memory"]["codes"]:
             users_db[uid]["memory"]["codes"][detected_app_id] = []
             
+        # Agar code memory me already hai (kisi ne dubara bheja hai), toh skip kar dega
         if code in users_db[uid]["memory"]["codes"][detected_app_id]: return 
             
         users_db[uid]["memory"]["codes"][detected_app_id].append(code)
@@ -386,12 +387,14 @@ async def callback_handler(event):
             await user_clients[uid].disconnect()
             
         asyncio.create_task(start_scraper_client(user_id))
-        await event.respond("🚀 **Scraper Started Successfully!**", buttons=get_main_menu(uid))
+        # 🛠️ NAYA: Resume Confirmation Message
+        await event.respond("▶️ **Scraper Resumed (Started)!**\n*(Aaj ke bheje gaye codes bot ko yaad hain)*", buttons=get_main_menu(uid))
 
     elif data == "stop_bot":
         users_db[uid]["is_running"] = False
         save_users()
-        await event.respond("🔴 **Scraper Stopped!**", buttons=get_main_menu(uid))
+        # 🛠️ NAYA: Pause Confirmation Message
+        await event.respond("⏸️ **Scraper Paused!**\n*(Jab tak aap Resume nahi karenge, koi code forward nahi hoga)*", buttons=get_main_menu(uid))
 
     elif data == "menu_apps":
         sync_default_apps(uid) 
