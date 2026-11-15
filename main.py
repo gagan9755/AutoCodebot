@@ -25,7 +25,10 @@ Thread(target=run_server).start()
 # --- ⚙️ BOT CONFIGURATION ---
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
-BOT_TOKEN = '8848334437:AAGDkchmw4y-NdmCnFCvRvKjy2mOF_c6V0I' 
+
+# ⚠️ APNA NAYA TOKEN YAHAN DALEIN (Purana expire ho chuka hai)
+BOT_TOKEN = 'PASTE_YOUR_NEW_TOKEN_HERE' 
+
 MASTER_ID = 8845438009  # Your Admin ID
 
 master_bot = TelegramClient('affiliate_master', API_ID, API_HASH)
@@ -37,10 +40,10 @@ USERS_DB_FILE = "users_db.json"
 SESSIONS_FILE = "sessions.json"
 
 # ==========================================
-# 📝 MASSIVE DEFAULT APPS DATABASE (69 Apps)
+# 📝 MASSIVE DEFAULT APPS DATABASE (70 Apps)
 # ==========================================
 DEFAULT_APPS = {
-    # 🎰 YONO TYPE APPS (49 Apps)
+    # 🎰 YONO TYPE APPS (50 Apps)
     "bingo101": {"name": "Bingo101", "type": "yono"},
     "bossrummy": {"name": "Boss rummy", "type": "yono"},
     "maxrummy": {"name": "Max rummy", "type": "yono"},
@@ -90,6 +93,7 @@ DEFAULT_APPS = {
     "cashrummy": {"name": "Cash rummy", "type": "yono"},
     "rummy888": {"name": "Rummy 888", "type": "yono"},
     "gogorummy": {"name": "Gogo rummy", "type": "yono"},
+    "123rummy": {"name": "123 Rummy", "type": "yono"},  # Naya app add kar diya gaya hai
 
     # 👑 DIWA TYPE APPS (20 Apps)
     "diwagame": {"name": "Diwa Game", "type": "diwa"},
