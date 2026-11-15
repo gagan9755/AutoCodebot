@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from telethon import TelegramClient, events, Button
 from telethon.sessions import StringSession
 from telethon.errors import SessionPasswordNeededError
+from telethon.tl.types import MessageEntityCode, MessageEntityPre, MessageEntityCustomEmoji
 from flask import Flask
 from threading import Thread
 
@@ -24,35 +25,108 @@ Thread(target=run_server).start()
 # --- ⚙️ BOT CONFIGURATION ---
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
-BOT_TOKEN = '8848334437:AAE8VYZw-LSY7BttBrWFFngR77cTso6LFtg' 
+BOT_TOKEN = '8848334437:AAGDkchmw4y-NdmCnFCvRvKjy2mOF_c6V0I' 
 MASTER_ID = 8845438009  # Your Admin ID
 
 master_bot = TelegramClient('affiliate_master', API_ID, API_HASH)
 
-# Directories
-if not os.path.exists('photos'):
-    os.makedirs('photos')
+if not os.path.exists('photos'): os.makedirs('photos')
 
 ADMIN_DB_FILE = "admin_db.json"
 USERS_DB_FILE = "users_db.json"
 SESSIONS_FILE = "sessions.json"
 
+# ==========================================
+# 📝 MASSIVE DEFAULT APPS DATABASE (69 Apps)
+# ==========================================
+DEFAULT_APPS = {
+    # 🎰 YONO TYPE APPS (49 Apps)
+    "bingo101": {"name": "Bingo101", "type": "yono"},
+    "bossrummy": {"name": "Boss rummy", "type": "yono"},
+    "maxrummy": {"name": "Max rummy", "type": "yono"},
+    "yonorummy": {"name": "Yono rummy", "type": "yono"},
+    "slotswinner": {"name": "Slots winner", "type": "yono"},
+    "spin101": {"name": "Spin 101", "type": "yono"},
+    "jaihoarcade": {"name": "Jaiho arcade", "type": "yono"},
+    "yono777": {"name": "Yono 777", "type": "yono"},
+    "mbmbet": {"name": "Mbm bet", "type": "yono"},
+    "jaiho91": {"name": "Jaiho 91", "type": "yono"},
+    "jaiho777": {"name": "Jaiho 777", "type": "yono"},
+    "dhangame": {"name": "Dhan game", "type": "yono"},
+    "winrummy": {"name": "Win rummy", "type": "yono"},
+    "spinwinner": {"name": "Spin winner", "type": "yono"},
+    "jaihospin": {"name": "Jaiho spin", "type": "yono"},
+    "jaihoslots": {"name": "Jaiho slots", "type": "yono"},
+    "rummy91": {"name": "Rummy 91", "type": "yono"},
+    "clubinr": {"name": "Club inr", "type": "yono"},
+    "mahagames": {"name": "Maha games", "type": "yono"},
+    "spin777": {"name": "Spin 777", "type": "yono"},
+    "okrummy": {"name": "Ok rummy", "type": "yono"},
+    "jaihorummy": {"name": "Jaiho rummy", "type": "yono"},
+    "loverummy": {"name": "Love rummy", "type": "yono"},
+    "netavip": {"name": "Neta vip", "type": "yono"},
+    "gamerummy": {"name": "Game rummy", "type": "yono"},
+    "goldrummy": {"name": "Gold rummy", "type": "yono"},
+    "shareslots": {"name": "Share slots", "type": "yono"},
+    "slotsspin": {"name": "Slots spin", "type": "yono"},
+    "spincrush": {"name": "Spin crush", "type": "yono"},
+    "joyrummy": {"name": "Joy rummy", "type": "yono"},
+    "moneyrummy": {"name": "Money rummy", "type": "yono"},
+    "rummy77": {"name": "Rummy 77", "type": "yono"},
+    "101z": {"name": "101z", "type": "yono"},
+    "yonoarcade": {"name": "Yono arcade", "type": "yono"},
+    "yonovip": {"name": "Yono vip", "type": "yono"},
+    "rummblerummy": {"name": "Rummble rummy", "type": "yono"},
+    "jeetspin": {"name": "Jeet spin", "type": "yono"},
+    "abcrummy": {"name": "Abc rummy", "type": "yono"},
+    "jaihowin": {"name": "Jaiho win", "type": "yono"},
+    "indslots": {"name": "Ind slots", "type": "yono"},
+    "yonoslots": {"name": "Yono slots", "type": "yono"},
+    "viprummy": {"name": "Vip rummy", "type": "yono"},
+    "rummyludo": {"name": "Rummy ludo", "type": "yono"},
+    "spinrummy": {"name": "Spin rummy", "type": "yono"},
+    "jaihoplay": {"name": "Jaiho play", "type": "yono"},
+    "567slots": {"name": "567 slots", "type": "yono"},
+    "cashrummy": {"name": "Cash rummy", "type": "yono"},
+    "rummy888": {"name": "Rummy 888", "type": "yono"},
+    "gogorummy": {"name": "Gogo rummy", "type": "yono"},
+
+    # 👑 DIWA TYPE APPS (20 Apps)
+    "diwagame": {"name": "Diwa Game", "type": "diwa"},
+    "diwavip": {"name": "Diwa VIP", "type": "diwa"},
+    "diwaslot": {"name": "Diwa Slot", "type": "diwa"},
+    "diwa777": {"name": "Diwa 777", "type": "diwa"},
+    "goodslots": {"name": "Good Slots", "type": "diwa"},
+    "mqmbet": {"name": "MQM Bet", "type": "diwa"},
+    "diwaplay": {"name": "Diwa Play", "type": "diwa"},
+    "diwaking": {"name": "Diwa King", "type": "diwa"},
+    "diwax": {"name": "Diwa X", "type": "diwa"},
+    "diwatop": {"name": "Diwa Top", "type": "diwa"},
+    "diwawin": {"name": "Diwa Win", "type": "diwa"},
+    "diwarich": {"name": "Diwa Rich", "type": "diwa"},
+    "diwabonus": {"name": "Diwa Bonus", "type": "diwa"},
+    "diwafun": {"name": "Diwa Fun", "type": "diwa"},
+    "diwawow": {"name": "Diwa WOW", "type": "diwa"},
+    "diwaspin": {"name": "Diwa Spin", "type": "diwa"},
+    "diwaok": {"name": "Diwa OK", "type": "diwa"},
+    "diwarummy": {"name": "Diwa Rummy", "type": "diwa"},
+    "diwaace": {"name": "Diwa Ace", "type": "diwa"},
+    "diwalucky": {"name": "Diwa Lucky", "type": "diwa"}
+}
+
 # --- 📁 DATABASE FUNCTIONS ---
 def load_json(filepath, default):
     if os.path.exists(filepath):
         try:
-            with open(filepath, 'r') as f:
-                return json.load(f)
+            with open(filepath, 'r') as f: return json.load(f)
         except Exception: return default
     return default
 
 def save_json(filepath, data):
     try:
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=4)
+        with open(filepath, 'w') as f: json.dump(data, f, indent=4)
     except Exception as e: pass
 
-# Load DBs
 admin_db = load_json(ADMIN_DB_FILE, {"keys": {}, "users": {}})
 users_db = load_json(USERS_DB_FILE, {})
 sessions_db = load_json(SESSIONS_FILE, {})
@@ -61,7 +135,6 @@ def save_admin(): save_json(ADMIN_DB_FILE, admin_db)
 def save_users(): save_json(USERS_DB_FILE, users_db)
 def save_sessions(): save_json(SESSIONS_FILE, sessions_db)
 
-# Init User
 def init_user(user_id):
     uid = str(user_id)
     if uid not in users_db:
@@ -75,13 +148,26 @@ def init_user(user_id):
         }
         save_users()
 
-# Name Cleaner (Mbm Bet -> mbmbet)
 def clean_app_name(name):
     return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
 
+# Sync Default Apps into User Profile
+def sync_default_apps(uid):
+    updated = False
+    for app_id, details in DEFAULT_APPS.items():
+        if app_id not in users_db[uid]["apps"]:
+            users_db[uid]["apps"][app_id] = {
+                "name": details["name"],
+                "type": details["type"],
+                "link": "",       
+                "emoji_id": None  
+            }
+            updated = True
+    if updated: save_users()
+
 user_states = {}
 user_clients = {}
-user_data = {}  # Fixed: Added dictionary for OTP handling
+user_data = {}  
 
 # --- 🔐 LICENSE LOGIC ---
 def generate_key(days):
@@ -105,9 +191,8 @@ def get_validity(user_id):
 # --- 🧠 UI MENUS ---
 def get_main_menu(uid):
     is_running = users_db[str(uid)].get("is_running", False)
-    status = "🟢 STOP SCRAPER" if is_running else "🚀 START SCRAPER"
+    status = "🔴 STOP SCRAPER" if is_running else "🟢 START SCRAPER"
     cb_data = b"stop_bot" if is_running else b"start_bot"
-    
     return [
         [Button.inline(status, cb_data)],
         [Button.inline("📱 App Manager", b"menu_apps"), Button.inline("🖼️ Photo Manager", b"menu_photos")],
@@ -117,8 +202,7 @@ def get_main_menu(uid):
 
 def get_app_menu():
     return [
-        [Button.inline("➕ Add New App", b"app_add")],
-        [Button.inline("✏️ Edit App Link/Name", b"app_edit")],
+        [Button.inline("➕ Add Custom App", b"app_add"), Button.inline("✏️ Set / Edit App Link", b"app_edit")],
         [Button.inline("🗑️ Delete App", b"app_del"), Button.inline("📋 List All Apps", b"app_list")],
         [Button.inline("🔙 Back to Main", b"main_menu")]
     ]
@@ -138,18 +222,16 @@ async def get_dialogs_buttons(client, action_prefix):
             if d.is_channel or d.is_group:
                 name = d.name[:20] if d.name else "Chat"
                 btns.append([Button.inline(name, f"{action_prefix}_{d.id}".encode())])
-        
         back_route = b"menu_source" if action_prefix == "setsrc" else b"menu_dest"
         btns.append([Button.inline("🔙 Back", back_route)])
         return btns
     except: return [[Button.inline("🔙 Back", b"main_menu")]]
 
-# --- 🎯 SCRAPER ENGINE (Background Loop) ---
+# --- 🎯 SCRAPER ENGINE ---
 async def start_scraper_client(user_id):
     uid = str(user_id)
     session_str = sessions_db.get(uid)
     if not session_str: return
-    
     client = TelegramClient(StringSession(session_str), API_ID, API_HASH)
     await client.connect()
     user_clients[uid] = client
@@ -160,7 +242,7 @@ async def start_scraper_client(user_id):
         if not users_db[uid]["sources"] or not users_db[uid]["destinations"]: return
         if str(event.chat_id) not in users_db[uid]["sources"]: return
 
-        text = event.message.message or ""
+        text = event.raw_text or ""
         clean_msg = clean_app_name(text)
         
         detected_app_id = None
@@ -170,13 +252,24 @@ async def start_scraper_client(user_id):
                 break
                 
         if not detected_app_id: return
+        
+        app_data = users_db[uid]["apps"][detected_app_id]
+        
+        # ⚠️ Agar App Pending hai (User ne link nahi daala), toh code skip kar do
+        if not app_data.get("link"): return
 
         code = None
         if "mail box" in text.lower() or "mailbox" in text.lower():
             code = "Check Mail Box 🎁"
         else:
-            match = re.search(r'(?i)code\s*[-:👉=>]+\s*([a-zA-Z0-9_]+)', text)
-            if match: code = match.group(1)
+            if event.message.entities:
+                for ent, ent_text in event.message.get_entities_text():
+                    if isinstance(ent, (MessageEntityCode, MessageEntityPre)):
+                        code = ent_text.strip()
+                        break
+            if not code:
+                match = re.search(r'(?i)code\s*[-:👉=>]*\s*([a-zA-Z0-9_]+)', text)
+                if match: code = match.group(1)
             
         if not code: return
 
@@ -188,25 +281,25 @@ async def start_scraper_client(user_id):
         if detected_app_id not in users_db[uid]["memory"]["codes"]:
             users_db[uid]["memory"]["codes"][detected_app_id] = []
             
-        if code not in users_db[uid]["memory"]["codes"][detected_app_id]:
-            users_db[uid]["memory"]["codes"][detected_app_id].append(code)
-            save_users()
+        if code in users_db[uid]["memory"]["codes"][detected_app_id]: return 
+            
+        users_db[uid]["memory"]["codes"][detected_app_id].append(code)
+        save_users()
 
-        app_data = users_db[uid]["apps"][detected_app_id]
         codes_list = users_db[uid]["memory"]["codes"][detected_app_id]
         app_type = app_data["type"]
+        emoji_id = app_data.get("emoji_id")
         
-        st_app = "🎰" if app_type == 'yono' else "👑"
+        if emoji_id: st_app = f'<tg-emoji emoji-id="{emoji_id}">🎯</tg-emoji>'
+        else: st_app = "🎰" if app_type == 'yono' else "👑"
         
-        final_msg = f"{st_app} **{app_data['name']} New PromoCode** {st_app}\n\n"
-        final_msg += f"🔗 **App Link:** {app_data['link']}\n\n"
-        final_msg += "🎁 **Today's Promo Codes:**\n"
+        final_msg = f"{st_app} <b>{app_data['name']} New PromoCode</b> {st_app}\n\n"
+        final_msg += f"🔗 <b>App Link:</b> {app_data['link']}\n\n"
+        final_msg += "🎁 <b>Today's Promo Codes:</b>\n"
         
         for i, c in enumerate(codes_list):
-            if "Mail Box" in c:
-                final_msg += f"{i+1}️⃣ {c}\n"
-            else:
-                final_msg += f"{i+1}️⃣ `{c}`\n"
+            if "Mail Box" in c: final_msg += f"{i+1}️⃣ {c}\n"
+            else: final_msg += f"{i+1}️⃣ <code>{c}</code>\n"
         
         photo_path = users_db[uid]["photos"].get(app_type)
         if photo_path and not os.path.exists(photo_path): photo_path = None
@@ -214,9 +307,9 @@ async def start_scraper_client(user_id):
         for dest_id in users_db[uid]["destinations"]:
             try:
                 if photo_path:
-                    await client.send_message(int(dest_id), final_msg, file=photo_path, link_preview=False)
+                    await client.send_message(int(dest_id), final_msg, file=photo_path, link_preview=False, parse_mode='html')
                 else:
-                    await client.send_message(int(dest_id), final_msg, link_preview=False)
+                    await client.send_message(int(dest_id), final_msg, link_preview=False, parse_mode='html')
             except Exception as e: print(f"Send Error: {e}")
 
 # --- 🤖 BOT COMMANDS ---
@@ -239,7 +332,6 @@ async def start_cmd(event):
     if check_sub(user_id):
         if uid not in user_clients and uid in sessions_db:
             asyncio.create_task(start_scraper_client(user_id))
-            
         await event.reply(f"✅ **Welcome Back!**\n⏳ Validity: `{get_validity(user_id)}`\n\n🎯 Panel load ho gaya hai:", buttons=get_main_menu(uid))
     else:
         user_states[user_id] = 'WAITING_KEY'
@@ -277,13 +369,19 @@ async def callback_handler(event):
             user_states[user_id] = 'WAITING_PHONE'
             await event.respond("📱 Pehle apna **Telegram Phone Number** (+91...) bhejein:")
             return
-        if not users_db[uid]["apps"]:
-            await event.respond("⚠️ Pehle kam se kam 1 App add karein!", buttons=[[Button.inline("🔙 Back", b"main_menu")]])
+            
+        has_ready_app = any(app_data.get('link') for app_data in users_db[uid]["apps"].values())
+        if not has_ready_app:
+            await event.respond("⚠️ Scraper start karne se pehle kam se kam 1 App ko setup (Link add) karein!", buttons=[[Button.inline("🔙 Back", b"main_menu")]])
             return
             
         users_db[uid]["is_running"] = True
         save_users()
-        if uid not in user_clients: asyncio.create_task(start_scraper_client(user_id))
+        
+        if uid in user_clients:
+            await user_clients[uid].disconnect()
+            
+        asyncio.create_task(start_scraper_client(user_id))
         await event.respond("🚀 **Scraper Started Successfully!**", buttons=get_main_menu(uid))
 
     elif data == "stop_bot":
@@ -292,7 +390,8 @@ async def callback_handler(event):
         await event.respond("🔴 **Scraper Stopped!**", buttons=get_main_menu(uid))
 
     elif data == "menu_apps":
-        await event.respond("📱 **App Manager:**", buttons=get_app_menu())
+        sync_default_apps(uid) 
+        await event.respond("📱 **App Manager:**\n*(Naye users ki list auto-update kar di gayi hai)*", buttons=get_app_menu())
         
     elif data == "app_add":
         await event.respond("Select App Type:", buttons=[
@@ -302,25 +401,43 @@ async def callback_handler(event):
     elif data.startswith("addtype_"):
         a_type = data.split("_")[1]
         user_states[user_id] = {'state': 'WAITING_APP_NAME', 'type': a_type}
-        await event.respond(f"📝 App ka **Name** type karein (Jaise: Mbm Bet):")
+        await event.respond(f"📝 Naye Custom App ka **Name** type karein:")
         
     elif data == "app_edit":
         if not users_db[uid]["apps"]:
             await event.respond("⚠️ Koi app nahi hai!", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
             return
         user_states[user_id] = 'WAITING_EDIT_NAME'
-        await event.respond("✏️ Jis App ko edit karna hai uska **Name** bhejein:")
+        await event.respond("✏️ Jis App ka Link/Sticker set ya edit karna hai uska **Name** bhejein (Jaise: Mbm Bet):")
         
     elif data == "app_del":
         user_states[user_id] = 'WAITING_DEL_NAME'
         await event.respond("🗑️ Jis App ko delete karna hai uska **Name** bhejein:")
         
     elif data == "app_list":
-        if not users_db[uid]["apps"]: msg = "⚠️ List khali hai."
-        else:
-            msg = "📋 **Saved Apps:**\n\n"
-            for k, v in users_db[uid]["apps"].items():
-                msg += f"• **{v['name']}** ({v['type'].upper()})\n🔗 `{v['link']}`\n\n"
+        sync_default_apps(uid)
+        ready_apps = []
+        pending_apps = []
+        for k, v in users_db[uid]["apps"].items():
+            if v.get("link"): ready_apps.append(v)
+            else: pending_apps.append(v)
+            
+        msg = "📋 **Your Apps List:**\n\n"
+        
+        if ready_apps:
+            msg += "✅ **READY APPS (Running):**\n"
+            for v in ready_apps:
+                emo = "✅ Set" if v.get('emoji_id') else "❌ None"
+                msg += f"• **{v['name']}** | 🔗 Link Set | 🏷️ {emo}\n"
+        
+        if pending_apps:
+            msg += "\n⏳ **PENDING APPS (Need Setup):**\n"
+            for v in pending_apps:
+                msg += f"• **{v['name']}** (Edit par jaake link lagayein)\n"
+                
+        if not ready_apps and not pending_apps:
+            msg = "⚠️ List khali hai."
+            
         await event.respond(msg, buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
 
     elif data == "menu_photos":
@@ -421,8 +538,8 @@ async def callback_handler(event):
         val = get_validity(user_id)
         sc = len(users_db[uid]["sources"])
         dc = len(users_db[uid]["destinations"])
-        ac = len(users_db[uid]["apps"])
-        msg = f"📊 **Your Stats:**\n\n⏳ Validity: `{val}`\n📱 Saved Apps: `{ac}`\n📥 Sources: `{sc}`\n📤 Destinations: `{dc}`"
+        ready_count = sum(1 for a in users_db[uid]["apps"].values() if a.get("link"))
+        msg = f"📊 **Your Stats:**\n\n⏳ Validity: `{val}`\n📱 Ready Apps: `{ready_count}`\n📥 Sources: `{sc}`\n📤 Destinations: `{dc}`"
         await event.respond(msg, buttons=[[Button.inline("🔙 Back", b"main_menu")]])
 
 @master_bot.on(events.NewMessage())
@@ -439,7 +556,6 @@ async def handle_text_inputs(event):
         if not event.message.media or not hasattr(event.message.media, 'photo'):
             await event.reply("❌ Kripya ek valid Photo bhejein!")
             return
-        
         a_type = "yono" if state == 'WAITING_PHOTO_YONO' else "diwa"
         path = f"photos/{a_type}_{uid}.jpg"
         await master_bot.download_media(event.message, path)
@@ -449,6 +565,7 @@ async def handle_text_inputs(event):
         await event.reply(f"✅ {a_type.upper()} Photo Set Successfully!", buttons=[[Button.inline("🔙 Back", b"menu_photos")]])
         return
 
+    # User manually adding a new app
     if isinstance(state, dict) and state.get('state') == 'WAITING_APP_NAME':
         clean_id = clean_app_name(text)
         user_states[user_id] = {'state': 'WAITING_APP_LINK', 'type': state['type'], 'id': clean_id, 'name': text}
@@ -456,39 +573,70 @@ async def handle_text_inputs(event):
         return
 
     if isinstance(state, dict) and state.get('state') == 'WAITING_APP_LINK':
+        state['link'] = text
+        state['state'] = 'WAITING_APP_EMOJI'
+        user_states[user_id] = state
+        await event.reply("🎯 Ab is App ka **Custom Emoji (Sticker)** bhejein.\n\n*(Agar normal emoji rakhna hai toh `/skip` type karein)*")
+        return
+        
+    if isinstance(state, dict) and state.get('state') == 'WAITING_APP_EMOJI':
         a_id = state['id']
-        users_db[uid]["apps"][a_id] = {"name": state['name'], "type": state['type'], "link": text}
+        emoji_id = None
+        if text.lower() != '/skip' and event.message.entities:
+            for ent in event.message.entities:
+                if isinstance(ent, MessageEntityCustomEmoji):
+                    emoji_id = ent.document_id
+                    break
+        users_db[uid]["apps"][a_id] = {
+            "name": state['name'], 
+            "type": state['type'], 
+            "link": state['link'],
+            "emoji_id": emoji_id
+        }
         save_users()
         user_states[user_id] = None
-        await event.reply(f"✅ App **{state['name']}** added successfully!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
+        await event.reply(f"✅ App **{state['name']}** added & is ready!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
 
+    # Editing / Activating a Default App
     if state == 'WAITING_EDIT_NAME':
         clean_id = clean_app_name(text)
         if clean_id in users_db[uid]["apps"]:
             user_states[user_id] = {'state': 'WAITING_EDIT_LINK', 'id': clean_id}
-            await event.reply(f"✏️ App mil gaya! Nayi **Affiliate Link** bhejein:")
+            await event.reply(f"✏️ Setup: **{users_db[uid]['apps'][clean_id]['name']}**\n\nNayi **Affiliate Link** bhejein:")
         else:
             user_states[user_id] = None
-            await event.reply("❌ Ye App saved list mein nahi hai.", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
+            await event.reply("❌ Ye App list mein nahi hai.", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
         return
         
     if isinstance(state, dict) and state.get('state') == 'WAITING_EDIT_LINK':
+        state['link'] = text
+        state['state'] = 'WAITING_EDIT_EMOJI'
+        user_states[user_id] = state
+        await event.reply("🎯 Ab is App ka **Custom Emoji (Sticker)** bhejein.\n\n*(Agar purana wala hi rakhna hai, ya normal emoji chahiye toh `/skip` type karein)*")
+        return
+        
+    if isinstance(state, dict) and state.get('state') == 'WAITING_EDIT_EMOJI':
         a_id = state['id']
-        users_db[uid]["apps"][a_id]["link"] = text
+        emoji_id = users_db[uid]["apps"][a_id].get("emoji_id") 
+        if text.lower() != '/skip' and event.message.entities:
+            for ent in event.message.entities:
+                if isinstance(ent, MessageEntityCustomEmoji):
+                    emoji_id = ent.document_id
+                    break
+        users_db[uid]["apps"][a_id]["link"] = state['link']
+        users_db[uid]["apps"][a_id]["emoji_id"] = emoji_id
         save_users()
         user_states[user_id] = None
-        await event.reply("✅ Link Updated Successfully!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
+        await event.reply("✅ App Configured and READY!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
 
     if state == 'WAITING_DEL_NAME':
         clean_id = clean_app_name(text)
         if clean_id in users_db[uid]["apps"]:
             del users_db[uid]["apps"][clean_id]
-            
             if clean_id in users_db[uid]["memory"]["codes"]:
                 del users_db[uid]["memory"]["codes"][clean_id]
-                
             save_users()
             await event.reply("🗑️ App Deleted!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         else:
