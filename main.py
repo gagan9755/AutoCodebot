@@ -26,7 +26,7 @@ Thread(target=run_server).start()
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
 
-# ✅ NAYA TOKEN ADD KAR DIYA GAYA HAI
+# ✅ AAPKA NEW TOKEN 
 BOT_TOKEN = '8848334437:AAGXnhrwiArNN9T4oDFQJhL53giAL9MEMas' 
 
 MASTER_ID = 8845438009  # Your Admin ID
@@ -195,7 +195,6 @@ def get_validity(user_id):
 # --- 🧠 UI MENUS ---
 def get_main_menu(uid):
     is_running = users_db[str(uid)].get("is_running", False)
-    # 🛠️ NAYA: PAUSE AUR RESUME BUTTON UI
     status = "⏸️ PAUSE SCRAPER" if is_running else "▶️ RESUME (START) SCRAPER"
     cb_data = b"stop_bot" if is_running else b"start_bot"
     return [
@@ -276,7 +275,7 @@ async def start_scraper_client(user_id):
             
         if not code: return
 
-        # 🧠 MEMORY SYSTEM: 1 Din ka data yaad rakhega
+        # 🧠 MEMORY SYSTEM
         today_str = datetime.now().strftime("%Y-%m-%d")
         if users_db[uid]["memory"]["date"] != today_str:
             users_db[uid]["memory"]["date"] = today_str
@@ -285,7 +284,6 @@ async def start_scraper_client(user_id):
         if detected_app_id not in users_db[uid]["memory"]["codes"]:
             users_db[uid]["memory"]["codes"][detected_app_id] = []
             
-        # Agar code memory me already hai (kisi ne dubara bheja hai), toh skip kar dega
         if code in users_db[uid]["memory"]["codes"][detected_app_id]: return 
             
         users_db[uid]["memory"]["codes"][detected_app_id].append(code)
@@ -387,13 +385,11 @@ async def callback_handler(event):
             await user_clients[uid].disconnect()
             
         asyncio.create_task(start_scraper_client(user_id))
-        # 🛠️ NAYA: Resume Confirmation Message
         await event.respond("▶️ **Scraper Resumed (Started)!**\n*(Aaj ke bheje gaye codes bot ko yaad hain)*", buttons=get_main_menu(uid))
 
     elif data == "stop_bot":
         users_db[uid]["is_running"] = False
         save_users()
-        # 🛠️ NAYA: Pause Confirmation Message
         await event.respond("⏸️ **Scraper Paused!**\n*(Jab tak aap Resume nahi karenge, koi code forward nahi hoga)*", buttons=get_main_menu(uid))
 
     elif data == "menu_apps":
@@ -410,13 +406,47 @@ async def callback_handler(event):
         user_states[user_id] = {'state': 'WAITING_APP_NAME', 'type': a_type}
         await event.respond(f"📝 Naye Custom App ka **Name** type karein:")
         
+    # 🛠️ NAYA UI: SET / EDIT APP LINK BY CATEGORY BUTTONS
     elif data == "app_edit":
-        if not users_db[uid]["apps"]:
-            await event.respond("⚠️ Koi app nahi hai!", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
-            return
-        user_states[user_id] = 'WAITING_EDIT_NAME'
-        await event.respond("✏️ Jis App ka Link/Sticker set ya edit karna hai uska **Name** bhejein (Jaise: Mbm Bet):")
+        sync_default_apps(uid)
+        await event.respond("✏️ **Link set karne ke liye Category chunein:**", buttons=[
+            [Button.inline("🎰 YONO Apps List", b"editcat_yono"), Button.inline("👑 DIWA Apps List", b"editcat_diwa")],
+            [Button.inline("🔙 Back", b"menu_apps")]
+        ])
+
+    # 🛠️ NAYA UI: DYNAMIC INLINE BUTTONS FOR ALL APPS
+    elif data.startswith("editcat_"):
+        cat = data.split("_")[1]
+        sync_default_apps(uid)
         
+        btns = []
+        row = []
+        for k, v in users_db[uid]["apps"].items():
+            if v["type"] == cat:
+                # Agar link set hai toh ✅, warna ⏳
+                indicator = "✅" if v.get("link") else "⏳"
+                btn_text = f"{indicator} {v['name']}"
+                row.append(Button.inline(btn_text, f"editapp_{k}".encode()))
+                
+                # 2 buttons per row
+                if len(row) == 2:
+                    btns.append(row)
+                    row = []
+        if row: btns.append(row) # Bacha hua button add karein
+        
+        btns.append([Button.inline("🔙 Back", b"app_edit")])
+        await event.respond(f"👇 **{cat.upper()} Apps List**\n*(✅=Ready, ⏳=Pending Setup)*\n\nJis app ka link dalna hai uspar click karein:", buttons=btns)
+
+    # 🛠️ NAYA UI: CLICKING ON AN APP BUTTON TO EDIT
+    elif data.startswith("editapp_"):
+        a_id = data.split("_")[1]
+        if a_id in users_db[uid]["apps"]:
+            user_states[user_id] = {'state': 'WAITING_EDIT_LINK', 'id': a_id}
+            app_name = users_db[uid]["apps"][a_id]["name"]
+            await event.respond(f"✏️ Setup: **{app_name}**\n\nNayi **Affiliate Link** bhejein:")
+        else:
+            await event.respond("❌ Ye App list mein nahi hai.", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
+
     elif data == "app_del":
         user_states[user_id] = 'WAITING_DEL_NAME'
         await event.respond("🗑️ Jis App ko delete karna hai uska **Name** bhejein:")
@@ -572,7 +602,7 @@ async def handle_text_inputs(event):
         await event.reply(f"✅ {a_type.upper()} Photo Set Successfully!", buttons=[[Button.inline("🔙 Back", b"menu_photos")]])
         return
 
-    # User manually adding a new app
+    # Add Custom App
     if isinstance(state, dict) and state.get('state') == 'WAITING_APP_NAME':
         clean_id = clean_app_name(text)
         user_states[user_id] = {'state': 'WAITING_APP_LINK', 'type': state['type'], 'id': clean_id, 'name': text}
@@ -604,18 +634,8 @@ async def handle_text_inputs(event):
         user_states[user_id] = None
         await event.reply(f"✅ App **{state['name']}** added & is ready!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
-
-    # Editing / Activating a Default App
-    if state == 'WAITING_EDIT_NAME':
-        clean_id = clean_app_name(text)
-        if clean_id in users_db[uid]["apps"]:
-            user_states[user_id] = {'state': 'WAITING_EDIT_LINK', 'id': clean_id}
-            await event.reply(f"✏️ Setup: **{users_db[uid]['apps'][clean_id]['name']}**\n\nNayi **Affiliate Link** bhejein:")
-        else:
-            user_states[user_id] = None
-            await event.reply("❌ Ye App list mein nahi hai.", buttons=[[Button.inline("🔙 Back", b"menu_apps")]])
-        return
         
+    # Edit Link Flow (Direct via Inline Button)
     if isinstance(state, dict) and state.get('state') == 'WAITING_EDIT_LINK':
         state['link'] = text
         state['state'] = 'WAITING_EDIT_EMOJI'
@@ -638,6 +658,7 @@ async def handle_text_inputs(event):
         await event.reply("✅ App Configured and READY!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
 
+    # Delete Custom App
     if state == 'WAITING_DEL_NAME':
         clean_id = clean_app_name(text)
         if clean_id in users_db[uid]["apps"]:
@@ -651,6 +672,7 @@ async def handle_text_inputs(event):
         user_states[user_id] = None
         return
 
+    # Login and Key setup
     if state == 'WAITING_KEY':
         if text in admin_db["keys"] and not admin_db["keys"][text]["used_by"]:
             exp = admin_db["keys"][text]["expires"]
