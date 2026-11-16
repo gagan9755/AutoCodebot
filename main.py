@@ -26,7 +26,7 @@ Thread(target=run_server).start()
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
 
-# ✅ AAPKA NEW TOKEN 
+# ⚠️ APNA NAYA TOKEN YAHAN DALEIN
 BOT_TOKEN = '8848334437:AAGXnhrwiArNN9T4oDFQJhL53giAL9MEMas' 
 
 MASTER_ID = 8845438009  # Your Admin ID
@@ -148,6 +148,7 @@ def init_user(user_id):
             "sources": {}, 
             "destinations": {},
             "memory": {"date": "", "codes": {}},
+            "arrow_emoji": None, # 🛠️ NAYA: Arrow Emoji memory
             "is_running": False
         }
         save_users()
@@ -155,7 +156,6 @@ def init_user(user_id):
 def clean_app_name(name):
     return re.sub(r'[^a-zA-Z0-9]', '', name).lower()
 
-# Sync Default Apps into User Profile
 def sync_default_apps(uid):
     updated = False
     for app_id, details in DEFAULT_APPS.items():
@@ -201,7 +201,7 @@ def get_main_menu(uid):
         [Button.inline(status, cb_data)],
         [Button.inline("📱 App Manager", b"menu_apps"), Button.inline("🖼️ Photo Manager", b"menu_photos")],
         [Button.inline("📥 Sources Manager", b"menu_source"), Button.inline("📤 Dest Manager", b"menu_dest")],
-        [Button.inline("📊 My Stats / Validity", b"my_stats")]
+        [Button.inline("⚙️ Set Arrow Emoji", b"set_arrow"), Button.inline("📊 My Stats / Validity", b"my_stats")] # 🛠️ NAYA BUTTON
     ]
 
 def get_app_menu():
@@ -296,13 +296,21 @@ async def start_scraper_client(user_id):
         if emoji_id: st_app = f'<tg-emoji emoji-id="{emoji_id}">🎯</tg-emoji>'
         else: st_app = "🎰" if app_type == 'yono' else "👑"
         
+        # 🛠️ NAYA: Arrow Emoji Setup
+        arrow_val = users_db[uid].get("arrow_emoji")
+        if isinstance(arrow_val, int):
+            arrow_str = f'<tg-emoji emoji-id="{arrow_val}">➡️</tg-emoji>'
+        elif arrow_val:
+            arrow_str = str(arrow_val)
+        else:
+            arrow_str = "➡️" # Default arrow
+
         final_msg = f"{st_app} <b>{app_data['name']} New PromoCode</b> {st_app}\n\n"
         final_msg += f"🔗 <b>App Link:</b> {app_data['link']}\n\n"
-        final_msg += "🎁 <b>Today's Promo Codes:</b>\n"
         
-        for i, c in enumerate(codes_list):
-            if "Mail Box" in c: final_msg += f"{i+1}️⃣ {c}\n"
-            else: final_msg += f"{i+1}️⃣ <code>{c}</code>\n"
+        for c in codes_list:
+            if "Mail Box" in c: final_msg += f"Code {arrow_str} {c}\n"
+            else: final_msg += f"Code {arrow_str} <code>{c}</code>\n"
         
         photo_path = users_db[uid]["photos"].get(app_type)
         if photo_path and not os.path.exists(photo_path): photo_path = None
@@ -392,6 +400,11 @@ async def callback_handler(event):
         save_users()
         await event.respond("⏸️ **Scraper Paused!**\n*(Jab tak aap Resume nahi karenge, koi code forward nahi hoga)*", buttons=get_main_menu(uid))
 
+    # 🛠️ NAYA: Set Arrow Callback
+    elif data == "set_arrow":
+        user_states[user_id] = 'WAITING_ARROW_EMOJI'
+        await event.respond("🎯 **Custom Arrow Emoji bhejein:**\n*(Koi bhi Premium Animated Sticker ya normal Emoji jaise ➡️ bhejein)*")
+
     elif data == "menu_apps":
         sync_default_apps(uid) 
         await event.respond("📱 **App Manager:**\n*(Naye users ki list auto-update kar di gayi hai)*", buttons=get_app_menu())
@@ -406,7 +419,6 @@ async def callback_handler(event):
         user_states[user_id] = {'state': 'WAITING_APP_NAME', 'type': a_type}
         await event.respond(f"📝 Naye Custom App ka **Name** type karein:")
         
-    # 🛠️ NAYA UI: SET / EDIT APP LINK BY CATEGORY BUTTONS
     elif data == "app_edit":
         sync_default_apps(uid)
         await event.respond("✏️ **Link set karne ke liye Category chunein:**", buttons=[
@@ -414,7 +426,6 @@ async def callback_handler(event):
             [Button.inline("🔙 Back", b"menu_apps")]
         ])
 
-    # 🛠️ NAYA UI: DYNAMIC INLINE BUTTONS FOR ALL APPS
     elif data.startswith("editcat_"):
         cat = data.split("_")[1]
         sync_default_apps(uid)
@@ -423,21 +434,17 @@ async def callback_handler(event):
         row = []
         for k, v in users_db[uid]["apps"].items():
             if v["type"] == cat:
-                # Agar link set hai toh ✅, warna ⏳
                 indicator = "✅" if v.get("link") else "⏳"
                 btn_text = f"{indicator} {v['name']}"
                 row.append(Button.inline(btn_text, f"editapp_{k}".encode()))
-                
-                # 2 buttons per row
                 if len(row) == 2:
                     btns.append(row)
                     row = []
-        if row: btns.append(row) # Bacha hua button add karein
+        if row: btns.append(row)
         
         btns.append([Button.inline("🔙 Back", b"app_edit")])
         await event.respond(f"👇 **{cat.upper()} Apps List**\n*(✅=Ready, ⏳=Pending Setup)*\n\nJis app ka link dalna hai uspar click karein:", buttons=btns)
 
-    # 🛠️ NAYA UI: CLICKING ON AN APP BUTTON TO EDIT
     elif data.startswith("editapp_"):
         a_id = data.split("_")[1]
         if a_id in users_db[uid]["apps"]:
@@ -589,6 +596,25 @@ async def handle_text_inputs(event):
     state = user_states.get(user_id)
     if not state: return
 
+    # 🛠️ NAYA: Handle Arrow Emoji Input
+    if state == 'WAITING_ARROW_EMOJI':
+        emoji_id = None
+        if event.message.entities:
+            for ent in event.message.entities:
+                if isinstance(ent, MessageEntityCustomEmoji):
+                    emoji_id = ent.document_id
+                    break
+        
+        if emoji_id:
+            users_db[uid]["arrow_emoji"] = emoji_id
+        else:
+            users_db[uid]["arrow_emoji"] = text
+            
+        save_users()
+        user_states[user_id] = None
+        await event.reply("✅ Arrow Emoji Set Successfully!", buttons=[[Button.inline("🔙 Back to Main", b"main_menu")]])
+        return
+
     if state in ['WAITING_PHOTO_YONO', 'WAITING_PHOTO_DIWA']:
         if not event.message.media or not hasattr(event.message.media, 'photo'):
             await event.reply("❌ Kripya ek valid Photo bhejein!")
@@ -602,7 +628,6 @@ async def handle_text_inputs(event):
         await event.reply(f"✅ {a_type.upper()} Photo Set Successfully!", buttons=[[Button.inline("🔙 Back", b"menu_photos")]])
         return
 
-    # Add Custom App
     if isinstance(state, dict) and state.get('state') == 'WAITING_APP_NAME':
         clean_id = clean_app_name(text)
         user_states[user_id] = {'state': 'WAITING_APP_LINK', 'type': state['type'], 'id': clean_id, 'name': text}
@@ -634,8 +659,7 @@ async def handle_text_inputs(event):
         user_states[user_id] = None
         await event.reply(f"✅ App **{state['name']}** added & is ready!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
-        
-    # Edit Link Flow (Direct via Inline Button)
+
     if isinstance(state, dict) and state.get('state') == 'WAITING_EDIT_LINK':
         state['link'] = text
         state['state'] = 'WAITING_EDIT_EMOJI'
@@ -658,7 +682,6 @@ async def handle_text_inputs(event):
         await event.reply("✅ App Configured and READY!", buttons=[[Button.inline("🔙 App Manager", b"menu_apps")]])
         return
 
-    # Delete Custom App
     if state == 'WAITING_DEL_NAME':
         clean_id = clean_app_name(text)
         if clean_id in users_db[uid]["apps"]:
@@ -672,7 +695,6 @@ async def handle_text_inputs(event):
         user_states[user_id] = None
         return
 
-    # Login and Key setup
     if state == 'WAITING_KEY':
         if text in admin_db["keys"] and not admin_db["keys"][text]["used_by"]:
             exp = admin_db["keys"][text]["expires"]
