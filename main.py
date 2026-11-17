@@ -146,6 +146,7 @@ def init_user(user_id):
             "destinations": {},
             "memory": {"date": "", "codes": {}},
             "arrow_emoji": None,
+            "number_emojis": [], # 🛠️ NAYA: Custom Numbers ke liye array
             "is_running": False
         }
         save_users()
@@ -196,7 +197,8 @@ def get_main_menu(uid):
         [Button.inline(status, cb_data)],
         [Button.inline("📱 App Manager", b"menu_apps"), Button.inline("🖼️ Photo Manager", b"menu_photos")],
         [Button.inline("📥 Sources Manager", b"menu_source"), Button.inline("📤 Dest Manager", b"menu_dest")],
-        [Button.inline("⚙️ Set Arrow Emoji", b"set_arrow"), Button.inline("📊 My Stats / Validity", b"my_stats")]
+        [Button.inline("⚙️ Set Arrow", b"set_arrow"), Button.inline("🔢 Set Numbers (1-5)", b"set_numbers")], # 🛠️ NAYA BUTTON
+        [Button.inline("📊 My Stats / Validity", b"my_stats")]
     ]
 
 def get_app_menu():
@@ -294,12 +296,20 @@ async def start_scraper_client(user_id):
         elif arrow_val: arrow_str = str(arrow_val)
         else: arrow_str = "➡️" 
 
-        # 🛠️ NAYA FORMAT (Code/Link Swap + Quote at bottom)
         final_msg = f"{st_app} <b>{app_data['name']} New PromoCode</b> {st_app}\n\n"
         
-        for c in codes_list:
-            if "Mail Box" in c: final_msg += f"🔗 <b>App Link:</b> {c}\n"
-            else: final_msg += f"🔗 <b>App Link:</b> <code>{c}</code>\n"
+        # 🛠️ NAYA: Number Emoji Logic
+        num_emojis = users_db[uid].get("number_emojis", [])
+        default_nums = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+        
+        for i, c in enumerate(codes_list):
+            if i < len(num_emojis):
+                num_str = f'<tg-emoji emoji-id="{num_emojis[i]}">{i+1}</tg-emoji>'
+            else:
+                num_str = default_nums[i] if i < 10 else f"{i+1}."
+                
+            if "Mail Box" in c: final_msg += f"{num_str} 🔗 <b>App Link:</b> {c}\n"
+            else: final_msg += f"{num_str} 🔗 <b>App Link:</b> <code>{c}</code>\n"
             
         final_msg += f"\nCode {arrow_str} {app_data['link']}\n"
         final_msg += f"\n<blockquote>ProMoCode Se Play Karke Paisa Banakar Free Withdrawal Karlo ❤️👍</blockquote>"
@@ -395,6 +405,11 @@ async def callback_handler(event):
     elif data == "set_arrow":
         user_states[user_id] = 'WAITING_ARROW_EMOJI'
         await event.respond("🎯 **Custom Arrow Emoji bhejein:**\n*(Koi bhi Premium Animated Sticker ya normal Emoji jaise ➡️ bhejein)*")
+
+    # 🛠️ NAYA: Set Numbers Callback
+    elif data == "set_numbers":
+        user_states[user_id] = 'WAITING_NUMBER_EMOJIS'
+        await event.respond("🔢 **1 se 5 tak ke Custom Number Emojis ek sath bhejein:**\n*(Udaharan ke liye: ek hi message me paancho animated numbers lagatar bhej dein)*")
 
     elif data == "menu_apps":
         sync_default_apps(uid) 
@@ -574,6 +589,23 @@ async def handle_text_inputs(event):
     
     state = user_states.get(user_id)
     if not state: return
+
+    # 🛠️ NAYA: Handle Array of Number Emojis Input
+    if state == 'WAITING_NUMBER_EMOJIS':
+        emoji_ids = []
+        if event.message.entities:
+            for ent in event.message.entities:
+                if isinstance(ent, MessageEntityCustomEmoji):
+                    emoji_ids.append(ent.document_id)
+                    
+        if emoji_ids:
+            users_db[uid]["number_emojis"] = emoji_ids
+            save_users()
+            await event.reply(f"✅ {len(emoji_ids)} Number Emojis Set Successfully!", buttons=[[Button.inline("🔙 Back to Main", b"main_menu")]])
+        else:
+            await event.reply("❌ Koi Custom Animated Emoji nahi mila. Kripya premium emojis bhejein.", buttons=[[Button.inline("🔙 Back to Main", b"main_menu")]])
+        user_states[user_id] = None
+        return
 
     if state == 'WAITING_ARROW_EMOJI':
         emoji_id = None
