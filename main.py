@@ -26,10 +26,10 @@ Thread(target=run_server).start()
 API_ID = 21601452
 API_HASH = 'cc8257993f2553fec9f43bcd6b8f79c4'
 
-# ⚠️ APNA NAYA TOKEN YAHAN DALEIN
+# ⚠️ APNA TOKEN DHYAN SE REKHEIN
 BOT_TOKEN = '8848334437:AAGXnhrwiArNN9T4oDFQJhL53giAL9MEMas' 
 
-MASTER_ID = 8845438009  # Your Admin ID
+MASTER_ID = 8845438009  
 
 master_bot = TelegramClient('affiliate_master', API_ID, API_HASH)
 
@@ -43,7 +43,6 @@ SESSIONS_FILE = "sessions.json"
 # 📝 MASSIVE DEFAULT APPS DATABASE (70 Apps)
 # ==========================================
 DEFAULT_APPS = {
-    # 🎰 YONO TYPE APPS (50 Apps)
     "bingo101": {"name": "Bingo101", "type": "yono"},
     "bossrummy": {"name": "Boss rummy", "type": "yono"},
     "maxrummy": {"name": "Max rummy", "type": "yono"},
@@ -95,7 +94,6 @@ DEFAULT_APPS = {
     "gogorummy": {"name": "Gogo rummy", "type": "yono"},
     "123rummy": {"name": "123 Rummy", "type": "yono"},  
 
-    # 👑 DIWA TYPE APPS (20 Apps)
     "diwagame": {"name": "Diwa Game", "type": "diwa"},
     "diwavip": {"name": "Diwa VIP", "type": "diwa"},
     "diwaslot": {"name": "Diwa Slot", "type": "diwa"},
@@ -118,7 +116,6 @@ DEFAULT_APPS = {
     "diwalucky": {"name": "Diwa Lucky", "type": "diwa"}
 }
 
-# --- 📁 DATABASE FUNCTIONS ---
 def load_json(filepath, default):
     if os.path.exists(filepath):
         try:
@@ -148,7 +145,7 @@ def init_user(user_id):
             "sources": {}, 
             "destinations": {},
             "memory": {"date": "", "codes": {}},
-            "arrow_emoji": None, # 🛠️ NAYA: Arrow Emoji memory
+            "arrow_emoji": None,
             "is_running": False
         }
         save_users()
@@ -173,7 +170,6 @@ user_states = {}
 user_clients = {}
 user_data = {}  
 
-# --- 🔐 LICENSE LOGIC ---
 def generate_key(days):
     key = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     expiry = datetime.now() + timedelta(days=days)
@@ -192,7 +188,6 @@ def get_validity(user_id):
     days = (exp - datetime.now()).days
     return f"{days} Days"
 
-# --- 🧠 UI MENUS ---
 def get_main_menu(uid):
     is_running = users_db[str(uid)].get("is_running", False)
     status = "⏸️ PAUSE SCRAPER" if is_running else "▶️ RESUME (START) SCRAPER"
@@ -201,7 +196,7 @@ def get_main_menu(uid):
         [Button.inline(status, cb_data)],
         [Button.inline("📱 App Manager", b"menu_apps"), Button.inline("🖼️ Photo Manager", b"menu_photos")],
         [Button.inline("📥 Sources Manager", b"menu_source"), Button.inline("📤 Dest Manager", b"menu_dest")],
-        [Button.inline("⚙️ Set Arrow Emoji", b"set_arrow"), Button.inline("📊 My Stats / Validity", b"my_stats")] # 🛠️ NAYA BUTTON
+        [Button.inline("⚙️ Set Arrow Emoji", b"set_arrow"), Button.inline("📊 My Stats / Validity", b"my_stats")]
     ]
 
 def get_app_menu():
@@ -256,7 +251,6 @@ async def start_scraper_client(user_id):
                 break
                 
         if not detected_app_id: return
-        
         app_data = users_db[uid]["apps"][detected_app_id]
         if not app_data.get("link"): return
 
@@ -275,7 +269,6 @@ async def start_scraper_client(user_id):
             
         if not code: return
 
-        # 🧠 MEMORY SYSTEM
         today_str = datetime.now().strftime("%Y-%m-%d")
         if users_db[uid]["memory"]["date"] != today_str:
             users_db[uid]["memory"]["date"] = today_str
@@ -296,21 +289,20 @@ async def start_scraper_client(user_id):
         if emoji_id: st_app = f'<tg-emoji emoji-id="{emoji_id}">🎯</tg-emoji>'
         else: st_app = "🎰" if app_type == 'yono' else "👑"
         
-        # 🛠️ NAYA: Arrow Emoji Setup
         arrow_val = users_db[uid].get("arrow_emoji")
-        if isinstance(arrow_val, int):
-            arrow_str = f'<tg-emoji emoji-id="{arrow_val}">➡️</tg-emoji>'
-        elif arrow_val:
-            arrow_str = str(arrow_val)
-        else:
-            arrow_str = "➡️" # Default arrow
+        if isinstance(arrow_val, int): arrow_str = f'<tg-emoji emoji-id="{arrow_val}">➡️</tg-emoji>'
+        elif arrow_val: arrow_str = str(arrow_val)
+        else: arrow_str = "➡️" 
 
+        # 🛠️ NAYA FORMAT (Code/Link Swap + Quote at bottom)
         final_msg = f"{st_app} <b>{app_data['name']} New PromoCode</b> {st_app}\n\n"
-        final_msg += f"🔗 <b>App Link:</b> {app_data['link']}\n\n"
         
         for c in codes_list:
-            if "Mail Box" in c: final_msg += f"Code {arrow_str} {c}\n"
-            else: final_msg += f"Code {arrow_str} <code>{c}</code>\n"
+            if "Mail Box" in c: final_msg += f"🔗 <b>App Link:</b> {c}\n"
+            else: final_msg += f"🔗 <b>App Link:</b> <code>{c}</code>\n"
+            
+        final_msg += f"\nCode {arrow_str} {app_data['link']}\n"
+        final_msg += f"\n<blockquote>ProMoCode Se Play Karke Paisa Banakar Free Withdrawal Karlo ❤️👍</blockquote>"
         
         photo_path = users_db[uid]["photos"].get(app_type)
         if photo_path and not os.path.exists(photo_path): photo_path = None
@@ -400,7 +392,6 @@ async def callback_handler(event):
         save_users()
         await event.respond("⏸️ **Scraper Paused!**\n*(Jab tak aap Resume nahi karenge, koi code forward nahi hoga)*", buttons=get_main_menu(uid))
 
-    # 🛠️ NAYA: Set Arrow Callback
     elif data == "set_arrow":
         user_states[user_id] = 'WAITING_ARROW_EMOJI'
         await event.respond("🎯 **Custom Arrow Emoji bhejein:**\n*(Koi bhi Premium Animated Sticker ya normal Emoji jaise ➡️ bhejein)*")
@@ -429,7 +420,6 @@ async def callback_handler(event):
     elif data.startswith("editcat_"):
         cat = data.split("_")[1]
         sync_default_apps(uid)
-        
         btns = []
         row = []
         for k, v in users_db[uid]["apps"].items():
@@ -441,7 +431,6 @@ async def callback_handler(event):
                     btns.append(row)
                     row = []
         if row: btns.append(row)
-        
         btns.append([Button.inline("🔙 Back", b"app_edit")])
         await event.respond(f"👇 **{cat.upper()} Apps List**\n*(✅=Ready, ⏳=Pending Setup)*\n\nJis app ka link dalna hai uspar click karein:", buttons=btns)
 
@@ -467,18 +456,15 @@ async def callback_handler(event):
             else: pending_apps.append(v)
             
         msg = "📋 **Your Apps List:**\n\n"
-        
         if ready_apps:
             msg += "✅ **READY APPS (Running):**\n"
             for v in ready_apps:
                 emo = "✅ Set" if v.get('emoji_id') else "❌ None"
                 msg += f"• **{v['name']}** | 🔗 Link Set | 🏷️ {emo}\n"
-        
         if pending_apps:
             msg += "\n⏳ **PENDING APPS (Need Setup):**\n"
             for v in pending_apps:
                 msg += f"• **{v['name']}** (Edit par jaake link lagayein)\n"
-                
         if not ready_apps and not pending_apps:
             msg = "⚠️ List khali hai."
             
@@ -520,7 +506,6 @@ async def callback_handler(event):
             for sid, sname in sources.items():
                 msg += f"• `{sname}`\n"
                 btns.append([Button.inline(f"❌ Remove {sname}", f"remsrc_{sid}".encode())])
-        
         btns.append([Button.inline("➕ Add New Source", b"add_src")])
         btns.append([Button.inline("🔙 Back to Main", b"main_menu")])
         await event.respond(msg, buttons=btns)
@@ -534,7 +519,6 @@ async def callback_handler(event):
             for did, dname in destinations.items():
                 msg += f"• `{dname}`\n"
                 btns.append([Button.inline(f"❌ Remove {dname}", f"remdst_{did}".encode())])
-        
         btns.append([Button.inline("➕ Add New Dest", b"add_dst")])
         btns.append([Button.inline("🔙 Back to Main", b"main_menu")])
         await event.respond(msg, buttons=btns)
@@ -554,15 +538,12 @@ async def callback_handler(event):
         is_src = data.startswith("setsrc_")
         c_id = data.split("_")[1]
         target = "sources" if is_src else "destinations"
-        
         try:
             ent = await user_clients[uid].get_entity(int(c_id))
             c_name = getattr(ent, 'title', 'Channel')[:15]
         except: c_name = "Channel"
-
         users_db[uid][target][str(c_id)] = c_name
         save_users()
-        
         if is_src: await callback_handler(events.CallbackQuery.Event(data=b"menu_source", sender_id=user_id))
         else: await callback_handler(events.CallbackQuery.Event(data=b"menu_dest", sender_id=user_id))
 
@@ -570,11 +551,9 @@ async def callback_handler(event):
         is_src = data.startswith("remsrc_")
         c_id = data.split("_")[1]
         target = "sources" if is_src else "destinations"
-        
         if str(c_id) in users_db[uid][target]:
             del users_db[uid][target][str(c_id)]
             save_users()
-        
         if is_src: await callback_handler(events.CallbackQuery.Event(data=b"menu_source", sender_id=user_id))
         else: await callback_handler(events.CallbackQuery.Event(data=b"menu_dest", sender_id=user_id))
 
@@ -596,7 +575,6 @@ async def handle_text_inputs(event):
     state = user_states.get(user_id)
     if not state: return
 
-    # 🛠️ NAYA: Handle Arrow Emoji Input
     if state == 'WAITING_ARROW_EMOJI':
         emoji_id = None
         if event.message.entities:
@@ -604,12 +582,8 @@ async def handle_text_inputs(event):
                 if isinstance(ent, MessageEntityCustomEmoji):
                     emoji_id = ent.document_id
                     break
-        
-        if emoji_id:
-            users_db[uid]["arrow_emoji"] = emoji_id
-        else:
-            users_db[uid]["arrow_emoji"] = text
-            
+        if emoji_id: users_db[uid]["arrow_emoji"] = emoji_id
+        else: users_db[uid]["arrow_emoji"] = text
         save_users()
         user_states[user_id] = None
         await event.reply("✅ Arrow Emoji Set Successfully!", buttons=[[Button.inline("🔙 Back to Main", b"main_menu")]])
